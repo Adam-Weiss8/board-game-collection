@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Harmonies</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  MAIN MENU                                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-setup" class="screen active">
+  <div class="setup-header">
+    <h1>Harmonies</h1>
+    <p>Token-drafting &amp; habitat building</p>
+  </div>
+  <div class="mode-buttons">
+    <button class="mode-btn" onclick="showScreen('qp')">
+      <span class="mode-name">Quick Play</span>
+      <span class="mode-desc">1 player vs Computer</span>
+    </button>
+    <button class="mode-btn" onclick="showScreen('local')">
+      <span class="mode-name">Local Game</span>
+      <span class="mode-desc">2–4 players, pass &amp; play</span>
+    </button>
+    <button class="mode-btn" onclick="enterCareerMode()">
+      <span class="mode-name">Career</span>
+      <span class="mode-desc">Build your Harmonies legacy</span>
+    </button>
+  </div>
+  <button class="btn btn-gray btn-back" onclick="location.href='../../index.html'">← Games</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  QUICK PLAY SETUP                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-qp" class="screen">
+  <div class="setup-header">
+    <h1>Quick Play</h1>
+    <p>You vs Computer</p>
+  </div>
+  <div class="setup-card">
+    <div class="setup-field">
+      <label>Your Name</label>
+      <input type="text" id="qp-player-name" placeholder="Player 1" maxlength="20">
+    </div>
+    <div class="setup-field">
+      <label>Difficulty</label>
+      <div class="toggle-row">
+        <div class="toggle-opt" id="qp-diff-easy"   onclick="setQPDiff('easy')">Easy</div>
+        <div class="toggle-opt active" id="qp-diff-medium" onclick="setQPDiff('medium')">Medium</div>
+        <div class="toggle-opt" id="qp-diff-hard"   onclick="setQPDiff('hard')">Hard</div>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Board Side</label>
+      <div class="toggle-row">
+        <div class="toggle-opt active" id="qp-side-a" onclick="setQPSide('A')">Side A — Blue (Islands)</div>
+        <div class="toggle-opt"        id="qp-side-b" onclick="setQPSide('B')">Side B — Brown (Longest River)</div>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Nature Spirits</label>
+      <div class="toggle-row">
+        <div class="toggle-opt active" id="qp-spirits-off" onclick="setQPSpirits(false)">No Spirits</div>
+        <div class="toggle-opt"        id="qp-spirits-on"  onclick="setQPSpirits(true)">With Spirits</div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:1rem">
+    <button class="btn btn-gray" onclick="showScreen('setup')">← Back</button>
+    <button class="btn btn-gold" onclick="startQPGame()" style="font-size:1.1rem;padding:0.65rem 2.5rem">Start Game</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  LOCAL GAME SETUP                                          -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-local" class="screen">
+  <div class="setup-header">
+    <h1>Local Game</h1>
+    <p>Pass &amp; Play</p>
+  </div>
+  <div class="setup-card">
+    <div class="setup-field">
+      <label>Number of Players</label>
+      <div class="player-count-row">
+        <button class="count-btn active" data-count="2" onclick="setLocalCount(2)">2</button>
+        <button class="count-btn"        data-count="3" onclick="setLocalCount(3)">3</button>
+        <button class="count-btn"        data-count="4" onclick="setLocalCount(4)">4</button>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Player Names</label>
+      <div id="player-name-inputs"></div>
+    </div>
+    <div class="setup-field">
+      <label>Board Side</label>
+      <div class="toggle-row">
+        <div class="toggle-opt active" id="local-side-a" onclick="setLocalSide('A')">Side A — Blue (Islands)</div>
+        <div class="toggle-opt"        id="local-side-b" onclick="setLocalSide('B')">Side B — Brown (Longest River)</div>
+      </div>
+    </div>
+    <div class="setup-field">
+      <label>Nature Spirits</label>
+      <div class="toggle-row">
+        <div class="toggle-opt active" id="local-spirits-off" onclick="setLocalSpirits(false)">No Spirits</div>
+        <div class="toggle-opt"        id="local-spirits-on"  onclick="setLocalSpirits(true)">With Spirits</div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:1rem">
+    <button class="btn btn-gray" onclick="showScreen('setup')">← Back</button>
+    <button class="btn btn-gold" onclick="startLocalGame()" style="font-size:1.1rem;padding:0.65rem 2.5rem">Start Game</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  GAME SCREEN                                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-game" class="screen">
+
+  <!-- Header -->
+  <div id="game-header">
+    <span class="h-title">Harmonies</span>
+    <span id="game-phase-label">Draft</span>
+    <span id="final-round-badge" class="final-round-badge" style="display:none">Final Round</span>
+    <span id="game-player-label">Player 1</span>
+    <button class="scoring-ref-btn" onclick="openScoringRef()" title="Scoring reference">?</button>
+  </div>
+
+  <!-- Central board -->
+  <div id="central-board"></div>
+
+  <!-- Main area -->
+  <div id="game-main">
+
+    <!-- Left sidebar: player's held cards + action buttons -->
+    <div id="sidebar-left">
+      <div class="sidebar-section-title">My Cards</div>
+      <div id="held-cards-list"></div>
+      <div id="action-buttons"></div>
+    </div>
+
+    <!-- Center: token chips above board, hex grid(s) below -->
+    <div id="board-area">
+      <div id="hand-token-bar"></div>
+      <div id="boards-container">
+        <div class="board-panel" id="human-board-panel">
+          <div class="board-panel-label" id="human-board-label">You</div>
+          <svg id="hex-board" xmlns="http://www.w3.org/2000/svg"></svg>
+        </div>
+        <div class="board-panel hidden" id="ai-board-panel">
+          <div class="board-panel-label" id="ai-board-label">Computer</div>
+          <svg id="hex-board-ai" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div id="ai-held-cards"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right sidebar: available animal cards -->
+    <div id="sidebar-right">
+      <div class="sidebar-section-title">Available Cards</div>
+      <div id="available-cards-list"></div>
+    </div>
+
+  </div>
+
+  <!-- Scoring reference modal -->
+  <div id="scoring-modal" class="modal hidden" onclick="closeScoringRef()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <button class="modal-close" onclick="closeScoringRef()">✕</button>
+      <h2 class="modal-title">Scoring Reference</h2>
+      <div id="scoring-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- AI thinking badge -->
+  <div class="ai-thinking-badge" id="ai-thinking-badge">Computer is thinking…</div>
+
+  <!-- Pass-and-play overlay -->
+  <div id="pass-overlay" class="hidden">
+    <div class="pass-box">
+      <h2 id="pass-player-name">Player 2</h2>
+      <p>It's your turn — tap when ready</p>
+      <button class="btn btn-gold" onclick="dismissPassOverlay()">I'm Ready</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  SCORE SCREEN                                              -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-score" class="screen">
+  <h1>Final Scores</h1>
+  <div class="score-table-wrap">
+    <table class="score-table" id="score-table">
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Trees</th>
+          <th>Mountains</th>
+          <th>Fields</th>
+          <th>Water</th>
+          <th>Buildings</th>
+          <th>Animals</th>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody id="score-body"></tbody>
+    </table>
+  </div>
+  <div id="score-boards" class="score-boards-grid"></div>
+  <div class="score-actions">
+    <button class="btn btn-gray" onclick="location.href='../../index.html'">← Games</button>
+    <button class="btn btn-green" onclick="showScreen('setup')">Play Again</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  CAREER: CHARACTER SELECT                                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-career-select" class="screen">
+  <div class="setup-header">
+    <h1>Career Mode</h1>
+    <p>Select a save slot</p>
+  </div>
+  <div id="career-slot-list" class="career-slot-list"></div>
+  <button class="btn btn-gray btn-back" onclick="showScreen('setup')">← Back</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  CAREER: CREATE CHARACTER                                   -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-career-create" class="screen">
+  <div class="setup-header">
+    <h1>New Career</h1>
+    <p>Create your character</p>
+  </div>
+  <div class="setup-card">
+    <div class="setup-field">
+      <label>Your Name</label>
+      <input type="text" id="career-create-name" placeholder="Enter name" maxlength="20">
+    </div>
+    <div class="setup-field">
+      <label>Portrait</label>
+      <div id="career-portrait-preview" style="margin:0.5rem auto;width:80px;height:80px"></div>
+      <div class="career-portrait-controls">
+        <div class="portrait-row">
+          <span>Background</span>
+          <div id="portrait-bg-swatches" class="portrait-swatches"></div>
+        </div>
+        <div class="portrait-row">
+          <span>Skin</span>
+          <div id="portrait-skin-swatches" class="portrait-swatches"></div>
+        </div>
+        <div class="portrait-row">
+          <span>Hair</span>
+          <div id="portrait-hair-swatches" class="portrait-swatches"></div>
+        </div>
+        <div class="portrait-row">
+          <span>Style</span>
+          <div id="portrait-hairstyle-btns" class="portrait-swatches"></div>
+        </div>
+        <div class="portrait-row">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" id="portrait-glasses"> Glasses
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:1rem">
+    <button class="btn btn-gray" onclick="showScreen('career-select')">← Back</button>
+    <button class="btn btn-gold" onclick="careerCreateConfirm()">Create Character</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  CAREER: HUB                                               -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-career-hub" class="screen">
+  <div class="career-hub-content">
+    <h1 class="career-title">Career Mode</h1>
+    <div class="career-player-card">
+      <div class="career-player-portrait" id="career-hub-portrait"></div>
+      <div class="career-player-name" id="career-hub-name"></div>
+    </div>
+    <div class="career-rating-display">
+      <div class="career-rating-number" id="career-hub-rating">0</div>
+      <div class="career-rating-label">RATING</div>
+    </div>
+    <div class="career-record">
+      <span id="career-hub-wins">0</span>&nbsp;W&nbsp;&nbsp;·&nbsp;&nbsp;<span id="career-hub-losses">0</span>&nbsp;L
+    </div>
+    <div class="career-hub-buttons">
+      <button class="btn btn-gold btn-career-action" onclick="careerFindMatch()">Find Match</button>
+      <button class="btn btn-gray" onclick="showScreen('career-select')">← Change Character</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  CAREER: OPPONENT INTRO                                     -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-career-intro" class="screen">
+  <div class="intro-content">
+    <div class="matchup-feel-banner" id="career-intro-matchup"></div>
+    <div class="opponent-card">
+      <div class="opponent-portrait-wrap" id="career-intro-portrait"></div>
+      <div class="opponent-card-info">
+        <div class="opponent-name-big" id="career-intro-name"></div>
+        <div class="opponent-archetype-tag" id="career-intro-archetype"></div>
+        <div class="opponent-bio-text" id="career-intro-bio"></div>
+        <div class="opponent-quote-text" id="career-intro-quote"></div>
+      </div>
+    </div>
+    <div class="intro-rating-row">
+      <span>Your rating: <strong id="career-intro-your-rating"></strong></span>
+      <span class="intro-rating-sep">·</span>
+      <span>Opponent rating: <strong id="career-intro-opp-skill"></strong></span>
+    </div>
+    <div class="intro-buttons">
+      <button class="btn btn-gold btn-career-action" onclick="careerStartMatch()">Start Match</button>
+      <button class="btn btn-gray" onclick="showScreen('career-hub')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  CAREER: MATCH RESULT                                       -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div id="screen-career-result" class="screen">
+  <div class="result-content">
+    <div class="result-outcome-label" id="career-result-outcome"></div>
+    <div class="result-opponent-recap">
+      <div class="result-portrait-small" id="career-result-portrait"></div>
+      <div class="result-opp-name" id="career-result-opp-name"></div>
+    </div>
+    <div class="result-score-row">
+      <div class="result-score-side">
+        <div class="result-score-label">You</div>
+        <div class="result-score-value" id="career-result-player-score"></div>
+      </div>
+      <div class="result-score-divider">–</div>
+      <div class="result-score-side">
+        <div class="result-score-label" id="career-result-opp-label"></div>
+        <div class="result-score-value" id="career-result-ai-score"></div>
+      </div>
+    </div>
+    <div class="result-rating-change">
+      <span class="result-rating-before" id="career-result-rating-before"></span>
+      <span class="result-rating-arrow">→</span>
+      <span class="result-rating-after" id="career-result-rating-after"></span>
+      <span class="result-rating-delta" id="career-result-rating-delta"></span>
+    </div>
+    <div class="result-message" id="career-result-message"></div>
+    <div class="result-opp-quote" id="career-result-quote"></div>
+    <div class="result-buttons">
+      <button class="btn btn-gold btn-career-action" onclick="careerContinue()">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  ENGINE SCRIPTS                                            -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<script src="engine/constants.js"></script>
+<script src="engine/board.js"></script>
+<script src="engine/central.js"></script>
+<script src="engine/animals.js"></script>
+<script src="engine/scoring.js"></script>
+<script src="engine/game.js"></script>
+<script src="engine/ai-config.js"></script>
+<script src="engine/ai-hasher.js"></script>
+<script src="engine/ai-evaluator.js"></script>
+<script src="engine/ai-search.js"></script>
+<script src="engine/ai-player.js"></script>
+<script src="../../shared/career/opponents.js"></script>
+<script src="../../shared/career/career.js"></script>
+<script src="main.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Claude Code local settings (keep server.js and launch.json for dev)
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.swp

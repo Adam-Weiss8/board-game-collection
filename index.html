@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Azul</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ===================== SCREENS ===================== -->
+
+  <!-- Game Picker Home -->
+  <div id="screen-home" class="screen active">
+    <div class="home-header">
+      <h1 class="home-title">Board Game Collection</h1>
+      <p class="home-subtitle">Choose a game to play</p>
+    </div>
+    <div class="game-picker-grid">
+      <button class="game-card" id="btn-pick-azul">
+        <div class="game-card-art azul-art"></div>
+        <div class="game-card-label">
+          <span class="game-card-name">Azul</span>
+          <span class="game-card-desc">Tile-drafting strategy</span>
+        </div>
+      </button>
+      <button class="game-card" onclick="location.href='games/harmonies/index.html'">
+        <div class="game-card-art harmonies-art"></div>
+        <div class="game-card-label">
+          <span class="game-card-name">Harmonies</span>
+          <span class="game-card-desc">Token-drafting &amp; habitats</span>
+        </div>
+      </button>
+      <button class="game-card game-card-soon" disabled>
+        <div class="game-card-art stratego-art"></div>
+        <div class="game-card-label">
+          <span class="game-card-name">Stratego</span>
+          <span class="game-card-desc">Coming soon</span>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Menu -->
+  <div id="screen-menu" class="screen">
+    <button class="back-to-home" id="btn-menu-back">← Games</button>
+    <div class="menu-bg-tiles"></div>
+    <div class="menu-content">
+      <h1 class="game-title">AZUL</h1>
+      <p class="game-subtitle">The Portuguese Tile Game</p>
+      <div class="menu-buttons">
+        <button class="btn btn-primary" id="btn-play">Quick Play</button>
+        <button class="btn btn-career" id="btn-career">Career Mode</button>
+        <button class="btn btn-secondary" id="btn-local">Local Game</button>
+        <button class="btn btn-secondary" id="btn-rules">Rules</button>
+        <button class="btn btn-secondary" id="btn-settings">Settings</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Difficulty Select -->
+  <div id="screen-difficulty" class="screen">
+    <div class="menu-content">
+      <h2 class="screen-title">Select Difficulty</h2>
+      <div class="difficulty-grid">
+        <button class="btn btn-difficulty" data-difficulty="easy">
+          <span class="diff-icon">&#9733;</span>
+          <span class="diff-name">Easy</span>
+          <span class="diff-desc">Random moves with basic preference</span>
+        </button>
+        <button class="btn btn-difficulty" data-difficulty="medium">
+          <span class="diff-icon">&#9733;&#9733;</span>
+          <span class="diff-name">Medium</span>
+          <span class="diff-desc">Heuristic evaluation, feels like an experienced player</span>
+        </button>
+        <button class="btn btn-difficulty" data-difficulty="hard">
+          <span class="diff-icon">&#9733;&#9733;&#9733;</span>
+          <span class="diff-name">Hard</span>
+          <span class="diff-desc">Minimax with alpha-beta pruning</span>
+        </button>
+        <button class="btn btn-difficulty" data-difficulty="expert">
+          <span class="diff-icon">&#9733;&#9733;&#9733;&#9733;</span>
+          <span class="diff-name">Expert</span>
+          <span class="diff-desc">Deep search, plays near-optimally</span>
+        </button>
+      </div>
+      <button class="btn btn-back" id="btn-diff-back">Back</button>
+    </div>
+  </div>
+
+  <!-- Rules Screen -->
+  <div id="screen-rules" class="screen">
+    <div class="rules-content">
+      <h2 class="screen-title">How to Play</h2>
+      <div class="rules-body">
+        <section>
+          <h3>Goal</h3>
+          <p>Score the most points by decorating your wall with colorful tiles.</p>
+        </section>
+        <section>
+          <h3>Taking Tiles</h3>
+          <p>On your turn, click a <strong>factory display</strong> or the <strong>center pool</strong>, then click a <strong>color</strong>. You take all tiles of that color.</p>
+          <p>Remaining tiles from the factory go to the center.</p>
+          <p>Taking from the center for the first time gives you the <strong>First Player token</strong> (a floor penalty).</p>
+        </section>
+        <section>
+          <h3>Placing Tiles</h3>
+          <p>Place your tiles on a <strong>pattern line</strong> (rows 1-5 on the left side of your board). Each row can only hold one color and can't match a color already placed on the wall in that row.</p>
+          <p>Overflow tiles go to the <strong>floor line</strong> (penalties).</p>
+        </section>
+        <section>
+          <h3>Scoring Each Round</h3>
+          <p>When all factories are empty, completed pattern lines move a tile to your wall. Score +1 for isolated tiles, or count connected horizontal + vertical tiles.</p>
+          <p>Floor penalties: -1, -1, -2, -2, -2, -3, -3</p>
+        </section>
+        <section>
+          <h3>End Game Bonuses</h3>
+          <p>+2 for each completed horizontal row<br>
+             +7 for each completed vertical column<br>
+             +10 for each completed color (all 5 tiles)</p>
+        </section>
+        <section>
+          <h3>Game End</h3>
+          <p>The game ends after a round in which any player completes a full horizontal row. Highest score wins!</p>
+        </section>
+      </div>
+      <button class="btn btn-back" id="btn-rules-back">Back</button>
+    </div>
+  </div>
+
+  <!-- Settings Screen -->
+  <div id="screen-settings" class="screen">
+    <div class="menu-content">
+      <h2 class="screen-title">Settings</h2>
+      <div class="settings-list">
+        <div class="setting-row">
+          <label>Animation Speed</label>
+          <div class="setting-control">
+            <button class="btn btn-option active" data-setting="animSpeed" data-value="slow">Slow</button>
+            <button class="btn btn-option" data-setting="animSpeed" data-value="normal">Normal</button>
+            <button class="btn btn-option" data-setting="animSpeed" data-value="fast">Fast</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>Sound Effects</label>
+          <div class="setting-control">
+            <button class="btn btn-option active" data-setting="sound" data-value="on">On</button>
+            <button class="btn btn-option" data-setting="sound" data-value="off">Off</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>Show Legal Move Hints</label>
+          <div class="setting-control">
+            <button class="btn btn-option active" data-setting="hints" data-value="on">On</button>
+            <button class="btn btn-option" data-setting="hints" data-value="off">Off</button>
+          </div>
+        </div>
+        <div class="setting-row">
+          <label>AI Thinking Delay</label>
+          <div class="setting-control">
+            <button class="btn btn-option" data-setting="aiDelay" data-value="none">None</button>
+            <button class="btn btn-option active" data-setting="aiDelay" data-value="short">Short</button>
+            <button class="btn btn-option" data-setting="aiDelay" data-value="long">Long</button>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-back" id="btn-settings-back">Back</button>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="screen-game" class="screen">
+
+    <!-- Top bar -->
+    <div id="game-topbar">
+      <div class="topbar-left">
+        <button class="btn btn-icon" id="btn-menu-game" title="Menu">&#8592; Menu</button>
+      </div>
+      <div class="topbar-center">
+        <span id="round-label">Round 1</span>
+        <div id="champion-banner" class="champion-banner hidden">&#9813; CHAMPIONSHIP MATCH &#9813;</div>
+      </div>
+      <div class="topbar-right">
+        <span id="turn-label">Your Turn</span>
+      </div>
+    </div>
+
+    <!-- Main game area -->
+    <div id="game-area">
+
+      <!-- Left: Human player board -->
+      <div id="player-board" class="player-board" data-player="0">
+        <div class="board-header">
+          <div class="board-portrait hidden" id="board-portrait-0"></div>
+          <span class="player-name" id="player-name-label">You</span>
+          <span class="player-score"><span id="score-0">0</span> pts</span>
+        </div>
+        <div class="board-main">
+          <div class="pattern-lines" id="pattern-lines-0"></div>
+          <div class="wall" id="wall-0"></div>
+        </div>
+        <div class="floor-line-container">
+          <span class="floor-label">Floor</span>
+          <div class="floor-line" id="floor-0"></div>
+          <div class="floor-penalties"><span>-1</span><span>-1</span><span>-2</span><span>-2</span><span>-2</span><span>-3</span><span>-3</span></div>
+        </div>
+      </div>
+
+      <!-- Center: Factories + Center pool -->
+      <div id="game-center">
+        <div id="factories-area">
+          <div id="factories-ring"></div>
+          <div id="center-pool">
+            <div class="center-label">Center</div>
+            <div id="center-tiles"></div>
+          </div>
+        </div>
+        <div id="game-status-msg"></div>
+      </div>
+
+      <!-- Right: AI player board -->
+      <div id="ai-board" class="player-board" data-player="1">
+        <div class="board-header">
+          <div class="board-portrait hidden" id="board-portrait-1"></div>
+          <span class="player-name" id="ai-board-name">AI <span id="ai-difficulty-label"></span></span>
+          <span class="player-score"><span id="score-1">0</span> pts</span>
+        </div>
+        <div class="board-main">
+          <div class="pattern-lines" id="pattern-lines-1"></div>
+          <div class="wall" id="wall-1"></div>
+        </div>
+        <div class="floor-line-container">
+          <span class="floor-label">Floor</span>
+          <div class="floor-line" id="floor-1"></div>
+          <div class="floor-penalties"><span>-1</span><span>-1</span><span>-2</span><span>-2</span><span>-2</span><span>-3</span><span>-3</span></div>
+        </div>
+      </div>
+
+      <!-- Extra boards for 3-4 player local games (hidden by default) -->
+      <div id="player-board-2" class="player-board hidden" data-player="2">
+        <div class="board-header">
+          <span class="player-name" id="player-name-label-2">Player 3</span>
+          <span class="player-score"><span id="score-2">0</span> pts</span>
+        </div>
+        <div class="board-main">
+          <div class="pattern-lines" id="pattern-lines-2"></div>
+          <div class="wall" id="wall-2"></div>
+        </div>
+        <div class="floor-line-container">
+          <span class="floor-label">Floor</span>
+          <div class="floor-line" id="floor-2"></div>
+          <div class="floor-penalties"><span>-1</span><span>-1</span><span>-2</span><span>-2</span><span>-2</span><span>-3</span><span>-3</span></div>
+        </div>
+      </div>
+
+      <div id="player-board-3" class="player-board hidden" data-player="3">
+        <div class="board-header">
+          <span class="player-name" id="player-name-label-3">Player 4</span>
+          <span class="player-score"><span id="score-3">0</span> pts</span>
+        </div>
+        <div class="board-main">
+          <div class="pattern-lines" id="pattern-lines-3"></div>
+          <div class="wall" id="wall-3"></div>
+        </div>
+        <div class="floor-line-container">
+          <span class="floor-label">Floor</span>
+          <div class="floor-line" id="floor-3"></div>
+          <div class="floor-penalties"><span>-1</span><span>-1</span><span>-2</span><span>-2</span><span>-2</span><span>-3</span><span>-3</span></div>
+        </div>
+      </div>
+
+    </div><!-- /game-area -->
+
+    <!-- Move preview overlay -->
+    <div id="move-preview" class="hidden">
+      <div id="preview-content"></div>
+    </div>
+
+  </div><!-- /screen-game -->
+
+  <!-- Pass-to-player overlay (local multiplayer) -->
+  <div id="overlay-pass" class="overlay hidden">
+    <div class="overlay-box pass-overlay-box">
+      <div id="pass-prompt" class="pass-prompt">Pass to Player 2</div>
+      <p class="pass-subtext">Hand the device to the next player</p>
+      <button class="btn btn-primary" id="btn-pass-ready">I'm Ready</button>
+    </div>
+  </div>
+
+  <!-- Round Transition Overlay -->
+  <div id="overlay-round" class="overlay hidden">
+    <div class="overlay-box">
+      <h2 id="round-title">End of Round</h2>
+      <div id="round-summary"></div>
+      <button class="btn btn-primary" id="btn-next-round">Next Round</button>
+    </div>
+  </div>
+
+  <!-- Game Over Screen -->
+  <div id="screen-gameover" class="screen">
+    <div id="confetti-container"></div>
+    <div class="gameover-content">
+      <h2 id="gameover-title">Game Over</h2>
+      <div id="gameover-scores"></div>
+      <div id="gameover-bonuses"></div>
+      <div id="gameover-winner"></div>
+      <div class="gameover-buttons">
+        <button class="btn btn-primary" id="btn-play-again">Play Again</button>
+        <button class="btn btn-secondary" id="btn-gameover-menu">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Thinking indicator -->
+  <div id="ai-thinking" class="hidden">
+    <div class="thinking-dots">
+      <span></span><span></span><span></span>
+    </div>
+    <span>AI thinking...</span>
+  </div>
+
+  <!-- Tile pick confirmation bar (appears at bottom when tiles selected) -->
+  <div id="pick-bar" class="hidden">
+    <div id="pick-preview-tiles"></div>
+    <div id="pick-instructions">Choose a pattern line or floor line</div>
+    <button class="btn btn-small" id="btn-cancel-pick">Cancel</button>
+  </div>
+
+  <!-- Score popup template (cloned via JS) -->
+  <template id="tmpl-score-popup">
+    <div class="score-popup"></div>
+  </template>
+
+  <!-- Audio -->
+  <audio id="snd-click" preload="auto">
+    <source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=" />
+  </audio>
+
+  <!-- Local Game Setup -->
+  <div id="screen-local-setup" class="screen">
+    <div class="menu-content">
+      <h2 class="screen-title">Local Game</h2>
+      <div class="setting-row">
+        <label>Players</label>
+        <div class="setting-control">
+          <button class="btn btn-option active" data-local-count="2">2</button>
+          <button class="btn btn-option" data-local-count="3">3</button>
+          <button class="btn btn-option" data-local-count="4">4</button>
+        </div>
+      </div>
+      <div class="local-name-inputs" id="local-name-inputs">
+        <input type="text" class="local-name-input" id="local-name-0" placeholder="Player 1" maxlength="16" value="Player 1">
+        <input type="text" class="local-name-input" id="local-name-1" placeholder="Player 2" maxlength="16" value="Player 2">
+        <input type="text" class="local-name-input hidden" id="local-name-2" placeholder="Player 3" maxlength="16" value="Player 3">
+        <input type="text" class="local-name-input hidden" id="local-name-3" placeholder="Player 4" maxlength="16" value="Player 4">
+      </div>
+      <div class="menu-buttons" style="margin-top:20px;">
+        <button class="btn btn-primary" id="btn-local-start">Start Game</button>
+        <button class="btn btn-back" id="btn-local-back">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Career Mode screens -->
+
+  <!-- Career Hub -->
+  <div id="screen-career-hub" class="screen">
+    <div class="career-hub-content">
+      <h1 class="career-title">Career Mode</h1>
+      <div class="career-player-card">
+        <div class="career-player-portrait" id="career-player-portrait"></div>
+        <div class="career-player-name" id="career-player-name"></div>
+      </div>
+      <div class="career-rating-display">
+        <div class="career-rating-number" id="career-rating-number">500</div>
+        <div class="career-rating-label">RATING</div>
+      </div>
+      <div class="career-record">
+        <span id="career-wins">0</span>&nbsp;W&nbsp;&nbsp;·&nbsp;&nbsp;<span id="career-losses">0</span>&nbsp;L
+      </div>
+      <div class="career-hub-buttons">
+        <button class="btn btn-primary btn-career-action" id="btn-career-find-match">Find Match</button>
+        <button class="btn btn-secondary" id="btn-career-to-menu">Main Menu</button>
+        <button class="btn btn-danger-sm" id="btn-career-reset">Reset Career</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Opponent Intro -->
+  <div id="screen-opponent-intro" class="screen">
+    <div class="intro-content">
+      <div class="matchup-feel-banner" id="matchup-feel-banner"></div>
+      <div class="opponent-card">
+        <div class="opponent-portrait-wrap" id="intro-portrait"></div>
+        <div class="opponent-card-info">
+          <div class="opponent-name-big" id="intro-opponent-name"></div>
+          <div class="opponent-archetype-tag" id="intro-archetype-tag"></div>
+          <div class="opponent-bio-text" id="intro-opponent-bio"></div>
+          <div class="opponent-quote-text" id="intro-opponent-quote"></div>
+        </div>
+      </div>
+      <div class="intro-rating-row">
+        <span>Your rating: <strong id="intro-your-rating"></strong></span>
+        <span class="intro-rating-sep">·</span>
+        <span>Opponent skill: <strong id="intro-opp-skill"></strong></span>
+      </div>
+      <div class="intro-buttons">
+        <button class="btn btn-primary btn-career-action" id="btn-begin-match">Begin Match</button>
+        <button class="btn btn-secondary" id="btn-intro-back">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Match Result -->
+  <div id="screen-match-result" class="screen">
+    <div class="result-content">
+      <div class="result-outcome-label" id="result-outcome-label"></div>
+      <div class="result-opponent-recap">
+        <div class="result-portrait-small" id="result-portrait"></div>
+        <div class="result-opp-name" id="result-opp-name"></div>
+      </div>
+      <div class="result-score-row">
+        <div class="result-score-side">
+          <div class="result-score-label">You</div>
+          <div class="result-score-value" id="result-player-score"></div>
+        </div>
+        <div class="result-score-divider">–</div>
+        <div class="result-score-side">
+          <div class="result-score-label" id="result-opp-label"></div>
+          <div class="result-score-value" id="result-ai-score"></div>
+        </div>
+      </div>
+      <div class="result-rating-change">
+        <span class="result-rating-before" id="result-rating-before"></span>
+        <span class="result-rating-arrow">→</span>
+        <span class="result-rating-after" id="result-rating-after"></span>
+        <span class="result-rating-delta" id="result-rating-delta"></span>
+      </div>
+      <div class="result-message" id="result-message"></div>
+      <div class="result-opp-quote" id="result-opp-quote"></div>
+      <div class="result-buttons">
+        <button class="btn btn-primary btn-career-action" id="btn-result-continue">Continue</button>
+        <button class="btn btn-secondary" id="btn-result-menu">Main Menu</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Career Select -->
+  <div id="screen-career-select" class="screen">
+    <div class="career-select-content">
+      <h2 class="screen-title">Career Mode</h2>
+      <div class="career-slots" id="career-slots"></div>
+      <button class="btn btn-secondary" id="btn-career-select-back">Back to Menu</button>
+    </div>
+  </div>
+
+  <!-- Character Creation -->
+  <div id="screen-career-create" class="screen">
+    <div class="career-create-content">
+      <h2 class="screen-title">Create Your Character</h2>
+      <div class="create-layout">
+
+        <!-- Left: live preview + name -->
+        <div class="create-preview-col">
+          <div class="create-preview-wrap">
+            <div class="create-preview" id="create-preview"></div>
+          </div>
+          <input type="text" id="create-name-input" class="create-name-input" placeholder="Your name" maxlength="18" autocomplete="off">
+        </div>
+
+        <!-- Right: customisation options -->
+        <div class="create-options-col">
+
+          <div class="create-option-row">
+            <span class="create-option-label">Background</span>
+            <div class="create-swatches" id="create-bg-swatches"></div>
+          </div>
+
+          <div class="create-option-row">
+            <span class="create-option-label">Skin Tone</span>
+            <div class="create-swatches" id="create-skin-swatches"></div>
+          </div>
+
+          <div class="create-option-row">
+            <span class="create-option-label">Hair Style</span>
+            <div class="create-toggle-group" id="create-hair-style-btns">
+              <button class="create-toggle" data-hair-style="0">Short</button>
+              <button class="create-toggle" data-hair-style="1">Long</button>
+              <button class="create-toggle" data-hair-style="2">Curly</button>
+              <button class="create-toggle" data-hair-style="3">Buzz</button>
+            </div>
+          </div>
+
+          <div class="create-option-row">
+            <span class="create-option-label">Hair Color</span>
+            <div class="create-swatches" id="create-hair-color-swatches"></div>
+          </div>
+
+          <div class="create-option-row">
+            <span class="create-option-label">Eyes</span>
+            <div class="create-toggle-group" id="create-glasses-btns">
+              <button class="create-toggle" data-glasses="false">Normal</button>
+              <button class="create-toggle" data-glasses="true">Glasses</button>
+            </div>
+          </div>
+
+          <div class="create-option-row">
+            <span class="create-option-label">Expression</span>
+            <div class="create-toggle-group" id="create-mood-btns">
+              <button class="create-toggle" data-mood="0.15">:)</button>
+              <button class="create-toggle" data-mood="0.5">:|</button>
+              <button class="create-toggle" data-mood="0.9">:(</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="create-buttons">
+        <button class="btn btn-primary" id="btn-create-confirm" disabled>Start Career</button>
+        <button class="btn btn-secondary" id="btn-create-back">Back</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="games/azul/constants.js"></script>
+  <script src="games/azul/bag.js"></script>
+  <script src="games/azul/factories.js"></script>
+  <script src="games/azul/board.js"></script>
+  <script src="games/azul/scoring.js"></script>
+  <script src="games/azul/game.js"></script>
+  <script src="games/azul/ai.js"></script>
+  <script src="games/azul/animations.js"></script>
+  <script src="shared/career/opponents.js"></script>
+  <script src="shared/career/career.js"></script>
+  <script src="shared/career/career-ai.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
