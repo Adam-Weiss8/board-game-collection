@@ -384,6 +384,42 @@ const ANIMAL_CARDS = [
   }
 ];
 
+// ── Animal emoji icons ────────────────────────────────────────
+const ANIMAL_EMOJI = {
+  'Otter':      '🦦',
+  'Warthog':    '🐗',
+  'Parrot':     '🦜',
+  'Koala':      '🐨',
+  'Flamingo':   '🦩',
+  'Porcupine':  '🦔',
+  'Peacock':    '🦚',
+  'Ladybug':    '🐞',
+  'Duck':       '🦆',
+  'Sting Ray':  '🐡',
+  'Mouse':      '🐭',
+  'Bee':        '🐝',
+  'Penguin':    '🐧',
+  'Blue Bird':  '🐦',
+  'Llama':      '🦙',
+  'Lizard':     '🦎',
+  'Bear':       '🐻',
+  'Fish':       '🐟',
+  'Bunny':      '🐰',
+  'Squirrel':   '🐿️',
+  'Crocodile':  '🐊',
+  'Eagle':      '🦅',
+  'Monkey':     '🐒',
+  'Meerkat':    '🦡',
+  'Frog':       '🐸',
+  'Panther':    '🐆',
+  'Bat':        '🦇',
+  'Crow':       '🐦',
+  'Fennec Fox': '🦊',
+  'Arctic Fox': '🐻‍❄️',
+  'Wolf':       '🐺',
+  'Raccoon':    '🦝',
+};
+
 // ── Pattern matching ──────────────────────────────────────────
 
 /**

@@ -14,7 +14,7 @@ function getNeighborKeys(q, r) {
 
 // ── Personal board factory ────────────────────────────────────
 function newPersonalBoard(boardSide) {
-  const hexList = boardSide === 'A' ? BOARD_HEXES_A : BOARD_HEXES_B;
+  const hexList = boardSide === 'A' ? BOARD_HEXES_B : BOARD_HEXES_A;
   const hexes = {};
   hexList.forEach(({ q, r }) => {
     hexes[hexKey(q, r)] = { stack: [] };

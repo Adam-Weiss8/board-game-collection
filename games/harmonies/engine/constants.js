@@ -71,9 +71,9 @@ const TREE_SCORE_TABLE = {
 // Mountains — points per gray hex by stack height, only if adjacent gray exists.
 const MOUNTAIN_SCORE_TABLE = { 1: 1, 2: 3, 3: 7 };
 
-// Water — points for the LONGEST connected blue chain only.
-const WATER_SCORE_TABLE = { 1: 0, 2: 2, 3: 4, 4: 6, 5: 9 };
-const WATER_SCORE_MAX   = 15; // length 6+
+// Water — Side A river scoring table (key = number of tiles in longest path).
+// For lengths > 9: 27 + (length - 9) * 4  (handled in scoring.js).
+const WATER_SCORE_TABLE = { 1: 0, 2: 2, 3: 5, 4: 8, 5: 11, 6: 15, 7: 19, 8: 23, 9: 27 };
 
 // Fields — each connected group of ≥2 yellow hexes scores this.
 const FIELD_GROUP_SCORE = 5;

@@ -202,8 +202,8 @@ function deadTerrainPenalty(board) {
       const adjYellow = neighbors.some(nk => getTopToken(board, nk) === 'YELLOW');
       const canGrow   = neighbors.some(nk => canPlaceToken(board, nk, 'YELLOW'));
       if (!adjYellow && !canGrow) penalty += 1;
-    } else if (top === 'BLUE' && board.boardSide === 'B') {
-      // Side B: only the largest water group scores — isolated blue is waste
+    } else if (top === 'BLUE' && board.boardSide === 'A') {
+      // Side A: only the max river group scores — isolated blue is waste
       const adjBlue = neighbors.some(nk => getTopToken(board, nk) === 'BLUE');
       if (!adjBlue) penalty += 0.5;
     }

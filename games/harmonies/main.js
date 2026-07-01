@@ -25,8 +25,8 @@ let isQuickPlay  = false;
 let aiDifficulty = 'medium';
 const AI_PLAYER  = 1; // AI always takes player index 1
 
-// Undo support (single-level)
-let undoState = null;
+// Undo support (full-turn stack — every action pushes a snapshot)
+let undoStack = [];
 
 function deepCloneState(state) {
   return {
@@ -52,13 +52,12 @@ function deepCloneState(state) {
 }
 
 function saveUndo() {
-  undoState = deepCloneState(gameState);
+  undoStack.push(deepCloneState(gameState));
 }
 
 function onUndo() {
-  if (!undoState) return;
-  gameState     = undoState;
-  undoState     = null;
+  if (!undoStack.length) return;
+  gameState       = undoStack.pop();
   selectedCardId  = null;
   selectedHandIdx = null;
   renderAll();
@@ -161,7 +160,7 @@ function startQPGame() {
   });
   selectedCardId  = null;
   selectedHandIdx = null;
-  undoState       = null;
+  undoStack       = [];
   document.getElementById('ai-board-panel').classList.remove('hidden');
   document.getElementById('human-board-label').textContent = name;
   showScreen('game');
@@ -180,7 +179,7 @@ function startLocalGame() {
   });
   selectedCardId  = null;
   selectedHandIdx = null;
-  undoState       = null;
+  undoStack       = [];
   document.getElementById('ai-board-panel').classList.add('hidden');
   document.getElementById('human-board-label').textContent = 'You';
   showScreen('game');
@@ -205,7 +204,7 @@ function hexCornersSVG(cx, cy, size) {
 }
 
 function getBoardHexList() {
-  return gameState.boardSide === 'A' ? BOARD_HEXES_A : BOARD_HEXES_B;
+  return gameState.boardSide === 'A' ? BOARD_HEXES_B : BOARD_HEXES_A;
 }
 
 function computeSVGBounds(hexList, size) {
@@ -384,6 +383,12 @@ function getCubeHexType(card) {
   return cell ? cell.type : null;
 }
 
+// Returns a small emoji span for the animal's icon.
+function cardEmojiIcon(card) {
+  const emoji = ANIMAL_EMOJI[card.name] || '🐾';
+  return `<span class="card-animal-icon">${emoji}</span>`;
+}
+
 // Returns inline style for a left-border tint based on the cube hex token type.
 function cardTintStyle(card) {
   const type = getCubeHexType(card);
@@ -405,7 +410,7 @@ function renderAvailableCards() {
       ? `<button class="btn btn-green card-take-btn" onclick="onTakeCard(${i})">Take</button>`
       : '';
     return `<div class="animal-card${canTake ? ' takeable' : ''}" style="${tint}">
-      <div class="card-name">${card.name}</div>
+      <div class="card-name"><span>${card.name}</span>${cardEmojiIcon(card)}</div>
       <div class="card-pts">${card.cubes} cubes · ${pts} pts</div>
       <div class="card-pattern">${renderPatternSVG(card)}</div>
       ${takeBtn}
@@ -439,9 +444,7 @@ function renderHeldCards() {
     const tint    = cardTintStyle(card);
 
     return `<div class="${cls}" ${onclick} style="${tint}">
-      <div class="card-name">${card.name}
-        ${canPlace ? `<span style="font-size:0.65rem;color:#44ff88;margin-left:4px">● place cube</span>` : ''}
-      </div>
+      <div class="card-name"><span>${card.name}${canPlace ? ` <span style="font-size:0.65rem;color:#44ff88">● place cube</span>` : ''}</span>${cardEmojiIcon(card)}</div>
       <div class="card-pts">${pts} pts next cube</div>
       <div class="card-pattern-row">
         <div class="card-pattern">${renderPatternSVG(card)}</div>
@@ -453,7 +456,7 @@ function renderHeldCards() {
 
 function renderActionButtons() {
   const el      = document.getElementById('action-buttons');
-  const undoBtn = undoState
+  const undoBtn = undoStack.length > 0
     ? `<button class="btn btn-gray" onclick="onUndo()" style="font-size:0.82rem">↩ Undo</button>`
     : '';
   if (gameState.phase === 'OPTIONAL') {
@@ -500,7 +503,7 @@ function renderAiBoard() {
   if (!isQuickPlay || !gameState) return;
   const board   = gameState.boards[AI_PLAYER];
   const hexList = getBoardHexList();
-  const size    = 30;
+  const size    = HEX_SIZE;
   const bounds  = computeSVGBounds(hexList, size);
   const svgEl   = document.getElementById('hex-board-ai');
 
@@ -533,18 +536,25 @@ function renderAiBoard() {
   svgEl.innerHTML = html;
 
   // Render AI held cards below its board
-  const aiCardsEl = document.getElementById('ai-held-cards');
+  const aiCardsEl = document.getElementById('ai-cards-list');
   if (board.heldCards.length === 0) {
-    aiCardsEl.innerHTML = '<div style="color:#555;font-size:0.7rem;text-align:center">No cards held</div>';
+    aiCardsEl.innerHTML = '<div style="color:#555;font-size:0.8rem;text-align:center">No cards held</div>';
     return;
   }
   aiCardsEl.innerHTML = board.heldCards.map(card => {
     const placed = board.cubesPlaced[card.id] || 0;
     const pts    = card.points[card.cubes - placed - 1] ?? 0;
     const tint   = cardTintStyle(card);
-    return `<div class="animal-card" style="${tint}padding:0.25rem 0.35rem">
-      <div class="card-name" style="font-size:0.65rem">${card.name} · ${pts}pt</div>
-      <div class="card-pattern">${renderPatternSVG(card)}</div>
+    const pips   = Array.from({ length: card.cubes }, (_, i) =>
+      `<div class="cube-pip ${i < placed ? 'filled' : ''}"></div>`
+    ).join('');
+    return `<div class="animal-card" style="${tint}">
+      <div class="card-name"><span>${card.name}</span>${cardEmojiIcon(card)}</div>
+      <div class="card-pts">${pts} pts next cube</div>
+      <div class="card-pattern-row">
+        <div class="card-pattern">${renderPatternSVG(card)}</div>
+        <div class="card-cubes">${pips}</div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -568,6 +578,7 @@ function onSelectHandToken(idx) {
   // Swap chosen token into the handIdx position so the engine always
   // places from tokensInHand[handIdx] as before.
   if (idx !== gameState.handIdx) {
+    saveUndo();
     const tmp = gameState.tokensInHand[gameState.handIdx];
     gameState.tokensInHand[gameState.handIdx] = gameState.tokensInHand[idx];
     gameState.tokensInHand[idx] = tmp;
@@ -617,6 +628,7 @@ function onTakeCard(cardIdx) {
 function onEndTurn() {
   if (gameState.phase !== 'OPTIONAL') return;
   selectedCardId = null;
+  undoStack = [];
   endOptionalPhase(gameState);
 
   if (gameState.phase === 'END') {
@@ -635,6 +647,7 @@ async function afterTurnAdvance() {
       renderDuringAiTurn();
     }, careerPersonality || null);
     showAiThinking(false);
+    undoStack = [];
     renderAll();
     renderAiBoard();
     if (gameState.phase === 'END') {
@@ -1066,7 +1079,7 @@ function careerStartMatch() {
   });
   selectedCardId  = null;
   selectedHandIdx = null;
-  undoState       = null;
+  undoStack       = [];
   document.getElementById('ai-board-panel').classList.remove('hidden');
   document.getElementById('ai-board-label').textContent    = careerOpponent.name;
   document.getElementById('human-board-label').textContent = name;

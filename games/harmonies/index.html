@@ -57,16 +57,13 @@
     <div class="setup-field">
       <label>Board Side</label>
       <div class="toggle-row">
-        <div class="toggle-opt active" id="qp-side-a" onclick="setQPSide('A')">Side A — Blue (Islands)</div>
-        <div class="toggle-opt"        id="qp-side-b" onclick="setQPSide('B')">Side B — Brown (Longest River)</div>
+        <div class="toggle-opt active" id="qp-side-a" onclick="setQPSide('A')">Side A — River Scoring</div>
+        <div class="toggle-opt"        id="qp-side-b" onclick="setQPSide('B')">Side B — Islands</div>
       </div>
     </div>
     <div class="setup-field">
       <label>Nature Spirits</label>
-      <div class="toggle-row">
-        <div class="toggle-opt active" id="qp-spirits-off" onclick="setQPSpirits(false)">No Spirits</div>
-        <div class="toggle-opt"        id="qp-spirits-on"  onclick="setQPSpirits(true)">With Spirits</div>
-      </div>
+      <p style="color:#888;margin:0;font-size:0.85rem">Coming soon</p>
     </div>
   </div>
   <div style="display:flex;gap:1rem">
@@ -99,16 +96,13 @@
     <div class="setup-field">
       <label>Board Side</label>
       <div class="toggle-row">
-        <div class="toggle-opt active" id="local-side-a" onclick="setLocalSide('A')">Side A — Blue (Islands)</div>
-        <div class="toggle-opt"        id="local-side-b" onclick="setLocalSide('B')">Side B — Brown (Longest River)</div>
+        <div class="toggle-opt active" id="local-side-a" onclick="setLocalSide('A')">Side A — River Scoring</div>
+        <div class="toggle-opt"        id="local-side-b" onclick="setLocalSide('B')">Side B — Islands</div>
       </div>
     </div>
     <div class="setup-field">
       <label>Nature Spirits</label>
-      <div class="toggle-row">
-        <div class="toggle-opt active" id="local-spirits-off" onclick="setLocalSpirits(false)">No Spirits</div>
-        <div class="toggle-opt"        id="local-spirits-on"  onclick="setLocalSpirits(true)">With Spirits</div>
-      </div>
+      <p style="color:#888;margin:0;font-size:0.85rem">Coming soon</p>
     </div>
   </div>
   <div style="display:flex;gap:1rem">
@@ -137,13 +131,6 @@
   <!-- Main area -->
   <div id="game-main">
 
-    <!-- Left sidebar: player's held cards + action buttons -->
-    <div id="sidebar-left">
-      <div class="sidebar-section-title">My Cards</div>
-      <div id="held-cards-list"></div>
-      <div id="action-buttons"></div>
-    </div>
-
     <!-- Center: token chips above board, hex grid(s) below -->
     <div id="board-area">
       <div id="hand-token-bar"></div>
@@ -151,11 +138,19 @@
         <div class="board-panel" id="human-board-panel">
           <div class="board-panel-label" id="human-board-label">You</div>
           <svg id="hex-board" xmlns="http://www.w3.org/2000/svg"></svg>
+          <div class="player-cards-section">
+            <div class="player-cards-label">My Cards</div>
+            <div class="player-cards-grid" id="held-cards-list"></div>
+          </div>
+          <div id="action-buttons"></div>
         </div>
         <div class="board-panel hidden" id="ai-board-panel">
           <div class="board-panel-label" id="ai-board-label">Computer</div>
           <svg id="hex-board-ai" xmlns="http://www.w3.org/2000/svg"></svg>
-          <div id="ai-held-cards"></div>
+          <div class="player-cards-section">
+            <div class="player-cards-label">Cards</div>
+            <div class="player-cards-grid" id="ai-cards-list"></div>
+          </div>
         </div>
       </div>
     </div>

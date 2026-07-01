@@ -82,9 +82,9 @@ function scoreFields(board) {
 /**
  * Compute the graph diameter of a connected group of hex keys:
  * the longest shortest-path between any two hexes in the group.
- * A 3-hex triangle (all mutually adjacent) → diameter 1.
- * A 3-hex line/L-shape (endpoints not adjacent) → diameter 2.
- * Score is based on diameter + 1 so the existing table stays valid.
+ * For a straight river of N tiles: diameter = N - 1.
+ * For a branching river: diameter = longest endpoint-to-endpoint path.
+ * Used by scoreWater to determine river length (diameter + 1 = tile count).
  */
 function _groupDiameter(groupKeys) {
   if (groupKeys.length <= 1) return 0;
@@ -109,23 +109,75 @@ function _groupDiameter(groupKeys) {
 }
 
 /**
- * Find all connected chains of blue hexes and score them.
- * Scoring is based on group diameter (longest shortest-path between any two
- * hexes), not raw hex count. A chain of N hexes has diameter N-1; a cluster
- * scores less. tableScore key = diameter + 1 maps to existing table.
- * boardSide 'A' (Islands): every group scores independently.
- * boardSide 'B' (Longest River): only the group with the greatest diameter scores.
- * Table (by diameter+1): 2→2, 3→4, 4→6, 5→9, 6+→15.
+ * Convert river length (number of tiles in longest path) to points.
+ * Table: 1→0, 2→2, 3→5, 4→8, 5→11, 6→15, 7→19, 8→23, 9→27.
+ * For lengths > 9: 27 + (length - 9) * 4.
+ */
+function _scoreRiver(length) {
+  return length <= 9
+    ? (WATER_SCORE_TABLE[length] || 0)
+    : 27 + (length - 9) * 4;
+}
+
+/**
+ * Count connected land regions (non-BLUE hexes) on the board.
+ * Water tiles (BLUE top) block connectivity — they separate land into islands.
+ * Empty hexes count as land.
+ * Used by scoreWater for Side B (Island Scoring).
+ */
+function _countLandIslands(board) {
+  const visited = new Set();
+  let islands = 0;
+  for (const [key, { stack }] of Object.entries(board.hexes)) {
+    if (visited.has(key)) continue;
+    if (stack.length > 0 && stack[stack.length - 1] === 'BLUE') continue; // water — skip
+    islands++;
+    const queue = [key];
+    visited.add(key);
+    while (queue.length) {
+      const cur = queue.shift();
+      const { q, r } = parseKey(cur);
+      for (const nk of getNeighborKeys(q, r)) {
+        if (visited.has(nk)) continue;
+        const nc = board.hexes[nk];
+        if (!nc) continue;
+        if (nc.stack.length > 0 && nc.stack[nc.stack.length - 1] === 'BLUE') continue;
+        visited.add(nk);
+        queue.push(nk);
+      }
+    }
+  }
+  return islands;
+}
+
+/**
+ * Water scoring — behaviour differs by board side:
+ *
+ * Side A (River Scoring):
+ *   Find all connected blue groups. For each, compute river length
+ *   (= _groupDiameter + 1, the tile count of the longest path through
+ *   the group). Look up score in WATER_SCORE_TABLE. Return only the
+ *   HIGHEST score across all groups — branches and separate rivers do
+ *   not accumulate.
+ *
+ * Side B (Island Scoring):
+ *   Water tiles do not score directly. Instead, they divide the board
+ *   into land islands. Count connected regions of non-BLUE hexes and
+ *   award 5 pts per island.
  */
 function scoreWater(board, boardSide) {
+  if (boardSide === 'B') {
+    return _countLandIslands(board) * 5;
+  }
+
+  // Side A — river scoring: find all blue groups, score each, return max.
   const visited = new Set();
-  const groupDiameters = [];
+  let maxScore = 0;
 
   for (const [key, { stack }] of Object.entries(board.hexes)) {
     if (visited.has(key)) continue;
     if (stack[stack.length - 1] !== 'BLUE') continue;
 
-    // BFS to collect all keys in this connected group
     const groupKeys = [];
     const queue = [key];
     visited.add(key);
@@ -141,23 +193,12 @@ function scoreWater(board, boardSide) {
         queue.push(nk);
       }
     }
-    groupDiameters.push(_groupDiameter(groupKeys));
+
+    const riverLength = _groupDiameter(groupKeys) + 1;
+    maxScore = Math.max(maxScore, _scoreRiver(riverLength));
   }
 
-  if (groupDiameters.length === 0) return 0;
-
-  // tableScore key = diameter + 1 (aligns diameter 1 → table[2] = 2 pts, etc.)
-  function tableScore(d) {
-    const key = d + 1;
-    if (key >= 6) return WATER_SCORE_MAX;
-    return WATER_SCORE_TABLE[key] || 0;
-  }
-
-  if (boardSide === 'A') {
-    return groupDiameters.reduce((sum, d) => sum + tableScore(d), 0);
-  } else {
-    return tableScore(Math.max(...groupDiameters));
-  }
+  return maxScore;
 }
 
 // ── Buildings ─────────────────────────────────────────────────
