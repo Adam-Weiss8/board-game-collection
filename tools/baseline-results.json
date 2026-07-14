@@ -1,0 +1,115 @@
+{
+  "recordedAt": "2026-07-02T13:35:36.732Z",
+  "gamesPerTier": 40,
+  "side": "A",
+  "tiers": {
+    "easy": {
+      "games": 80,
+      "difficulty": "easy",
+      "avg": 21,
+      "stddev": 8.5,
+      "max": 41,
+      "min": 5,
+      "over80pct": "0%",
+      "breakdown": {
+        "animals": 2.4,
+        "trees": 5.4,
+        "mountains": 2.7,
+        "fields": 3.8,
+        "water": 3.5,
+        "buildings": 3.3
+      },
+      "elapsedSec": 0.4,
+      "weights": {
+        "currentScore": 0.8,
+        "partialAnimalProgress": 1.2,
+        "sharedHabitat": 1,
+        "placementFlexibility": 0.15,
+        "deadTerrain": -0.35,
+        "openExpansion": 0.05
+      },
+      "wallSec": 0.4
+    },
+    "medium": {
+      "games": 80,
+      "difficulty": "medium",
+      "avg": 49.8,
+      "stddev": 13.1,
+      "max": 76,
+      "min": 22,
+      "over80pct": "0%",
+      "breakdown": {
+        "animals": 14.8,
+        "trees": 9.4,
+        "mountains": 3.9,
+        "fields": 5.3,
+        "water": 5.5,
+        "buildings": 11.1
+      },
+      "elapsedSec": 215.2,
+      "weights": {
+        "currentScore": 0.8,
+        "partialAnimalProgress": 1.2,
+        "sharedHabitat": 1,
+        "placementFlexibility": 0.15,
+        "deadTerrain": -0.35,
+        "openExpansion": 0.05
+      },
+      "wallSec": 215.2
+    },
+    "hard": {
+      "games": 80,
+      "difficulty": "hard",
+      "avg": 58.9,
+      "stddev": 12.6,
+      "max": 85,
+      "min": 29,
+      "over80pct": "4%",
+      "breakdown": {
+        "animals": 18.1,
+        "trees": 9.7,
+        "mountains": 6,
+        "fields": 6.1,
+        "water": 7.8,
+        "buildings": 11.2
+      },
+      "elapsedSec": 452.6,
+      "weights": {
+        "currentScore": 0.8,
+        "partialAnimalProgress": 1.2,
+        "sharedHabitat": 1,
+        "placementFlexibility": 0.15,
+        "deadTerrain": -0.35,
+        "openExpansion": 0.05
+      },
+      "wallSec": 452.6
+    },
+    "expert": {
+      "games": 80,
+      "difficulty": "expert",
+      "avg": 59.1,
+      "stddev": 10.8,
+      "max": 82,
+      "min": 28,
+      "over80pct": "1%",
+      "breakdown": {
+        "animals": 17.8,
+        "trees": 11.2,
+        "mountains": 6.8,
+        "fields": 5.6,
+        "water": 7.6,
+        "buildings": 10.1
+      },
+      "elapsedSec": 798,
+      "weights": {
+        "currentScore": 0.8,
+        "partialAnimalProgress": 1.2,
+        "sharedHabitat": 1,
+        "placementFlexibility": 0.15,
+        "deadTerrain": -0.35,
+        "openExpansion": 0.05
+      },
+      "wallSec": 798
+    }
+  }
+}

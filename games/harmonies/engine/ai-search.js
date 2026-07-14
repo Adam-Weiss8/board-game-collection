@@ -38,6 +38,8 @@ function _singleTokenScore(board, key, token) {
       return TREE_SCORE_TABLE[`${brownCount},1`] || 1;
     }
     case 'RED': {
+      const degree = getNeighborKeys(q, r).filter(nk => board.hexes[nk] !== undefined).length;
+      if (degree <= 2) return -1.0; // corner — almost never scores
       if (h >= 1) {
         const adjTypes = new Set(neighbors.map(nk => getTopToken(board, nk)).filter(Boolean));
         return adjTypes.size >= 3 ? 5 : adjTypes.size * 0.5;
@@ -89,7 +91,7 @@ function beamSearchPlacements(board, tokens, startIdx, boardSide, profile, deadl
         nextBeam.push({
           board:   node.board,
           choices: [...node.choices, null],
-          score:   quickEvaluate(node.board, boardSide),
+          score:   animalFastScore(node.board, boardSide),
         });
         continue;
       }
@@ -100,22 +102,34 @@ function beamSearchPlacements(board, tokens, startIdx, boardSide, profile, deadl
         nextBeam.push({
           board:   sim,
           choices: [...node.choices, key],
-          score:   quickEvaluate(sim, boardSide),
+          score:   animalFastScore(sim, boardSide),
         });
       }
     }
 
     if (nextBeam.length === 0) break;
 
-    // Prune to beam width, keeping highest quick-eval scores
+    // Prune to beam width, keeping highest quick-eval scores.
+    // Dedupe by board hash while filling: different placement orders reach
+    // identical boards, and duplicates waste beam slots.
     nextBeam.sort((a, b) => b.score - a.score);
-    beam = nextBeam.slice(0, Math.max(1, profile.beamWidth));
+    const width = Math.max(1, profile.beamWidth);
+    const seen  = new Set();
+    const kept  = [];
+    for (const node of nextBeam) {
+      if (kept.length >= width) break;
+      const h = hashBoard(node.board);
+      if (seen.has(h)) continue;
+      seen.add(h);
+      kept.push(node);
+    }
+    beam = kept;
   }
 
   // Re-rank survivors with deep evaluator if enabled
   if (profile.useDeep && beam.length > 1) {
     beam.forEach(node => {
-      node.deepScore = deepEvaluate(node.board, boardSide, null, DEEP_EVAL_WEIGHTS, tt).total;
+      node.deepScore = deepEvaluate(node.board, boardSide, null, profile.weights || DEEP_EVAL_WEIGHTS, tt).total;
     });
     beam.sort((a, b) => b.deepScore - a.deepScore);
   }
@@ -154,7 +168,7 @@ function beamSearchDraftSlot(state, profile, deadline, tt) {
   const boardSide = state.boardSide;
 
   const validSlots = slots
-    .map((tokens, i) => ({ idx: i, tokens }))
+    .map((slot, i) => ({ idx: i, tokens: slot.tokens }))
     .filter(s => s.tokens && s.tokens.length > 0);
 
   if (validSlots.length === 0) return 0;
@@ -164,13 +178,11 @@ function beamSearchDraftSlot(state, profile, deadline, tt) {
     return validSlots[Math.floor(Math.random() * validSlots.length)].idx;
   }
 
-  // Time budget per slot (leave headroom for MC if needed)
-  const mcBudget    = profile.monteCarlo ? (deadline - performance.now()) * 0.35 : 0;
-  const searchBudget = (deadline - performance.now()) - mcBudget;
-  const timePerSlot = Math.max(50, searchBudget / validSlots.length);
+  // Time budget per slot
+  const timePerSlot = Math.max(50, (deadline - performance.now()) / validSlots.length);
 
   const scored = validSlots.map(({ idx, tokens }) => {
-    const slotDeadline = Math.min(deadline - mcBudget, performance.now() + timePerSlot);
+    const slotDeadline = Math.min(deadline, performance.now() + timePerSlot);
 
     // Simulate placements for this slot
     const choices = beamSearchPlacements(board, tokens, 0, boardSide, profile, slotDeadline, tt);
@@ -183,8 +195,8 @@ function beamSearchDraftSlot(state, profile, deadline, tt) {
     }
 
     const score = profile.useDeep
-      ? deepEvaluate(sim, boardSide, null, DEEP_EVAL_WEIGHTS, tt).total
-      : quickEvaluate(sim, boardSide);
+      ? deepEvaluate(sim, boardSide, null, profile.weights || DEEP_EVAL_WEIGHTS, tt).total
+      : animalFastScore(sim, boardSide);
 
     return { idx, score };
   });
@@ -195,18 +207,6 @@ function beamSearchDraftSlot(state, profile, deadline, tt) {
     console.log('[AI beam:draft]', scored.map(s => ({ idx: s.idx, score: s.score.toFixed(2) })));
   }
 
-  // Expert: re-rank top candidates with Monte Carlo
-  if (profile.monteCarlo && performance.now() < deadline) {
-    const topN  = Math.min(5, scored.length);
-    const mcResults = _monteCarloRankSlots(
-      board, validSlots, scored.slice(0, topN), boardSide, profile, deadline, tt
-    );
-    if (mcResults.length > 0) {
-      if (AI_DEBUG) console.log('[AI MC:draft]', mcResults.map(r => ({ idx: r.idx, avg: r.avgScore.toFixed(2) })));
-      return mcResults[0].idx;
-    }
-  }
-
   // Medium: random from top 3; Hard/Expert: best
   if (profile.beamWidth <= 15) {
     const topN = Math.min(3, scored.length);
@@ -215,69 +215,5 @@ function beamSearchDraftSlot(state, profile, deadline, tt) {
   return scored[0].idx;
 }
 
-// ── Monte Carlo ───────────────────────────────────────────────
-
-/**
- * Re-rank top draft candidates using randomized rollouts.
- *
- * For each candidate slot, we run mcRollouts simulations.
- * Each simulation shuffles the token order and places greedily with
- * random selection from the top 3 positions (adds diversity).
- * Final board is scored with DeepEvaluate.
- *
- * @param {object}   board          - player's board (not mutated)
- * @param {object[]} allValidSlots  - [{ idx, tokens }]
- * @param {object[]} topCandidates  - [{ idx, score }] from beam search ranking
- * @param {string}   boardSide
- * @param {object}   profile
- * @param {number}   deadline
- * @param {TranspositionTable|null} [tt]
- * @returns {object[]} [{ idx, avgScore }] sorted best-first
- */
-function _monteCarloRankSlots(board, allValidSlots, topCandidates, boardSide, profile, deadline, tt) {
-  const rollouts = profile.mcRollouts || 20;
-  const results  = [];
-
-  for (const candidate of topCandidates) {
-    if (performance.now() >= deadline) break;
-
-    const { idx }  = candidate;
-    const slotData = allValidSlots.find(s => s.idx === idx);
-    if (!slotData) continue;
-    const tokens = slotData.tokens;
-
-    let totalScore = 0, actualRollouts = 0;
-
-    for (let r = 0; r < rollouts; r++) {
-      if (performance.now() >= deadline) break;
-
-      const sim = clonePersonalBoard(board);
-
-      // Place tokens in a random order, picking from top-3 positions each time
-      const shuffled = [...tokens].sort(() => Math.random() - 0.5);
-      for (const tok of shuffled) {
-        const places = legalPlacements(sim, tok);
-        if (places.length === 0) continue;
-
-        // Score each option, pick randomly from top 3
-        const ranked = places
-          .map(k => ({ k, s: _singleTokenScore(sim, k, tok) }))
-          .sort((a, b) => b.s - a.s)
-          .slice(0, 3);
-
-        const chosen = ranked[Math.floor(Math.random() * ranked.length)].k;
-        placeToken(sim, chosen, tok);
-      }
-
-      totalScore += deepEvaluate(sim, boardSide, null, DEEP_EVAL_WEIGHTS, tt).total;
-      actualRollouts++;
-    }
-
-    if (actualRollouts > 0) {
-      results.push({ idx, avgScore: totalScore / actualRollouts });
-    }
-  }
-
-  results.sort((a, b) => b.avgScore - a.avgScore);
-  return results;
-}
+// (Draft-slot Monte Carlo removed — superseded by full-game macro-move
+//  rollouts in ai-rollout.js.)

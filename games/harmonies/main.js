@@ -92,7 +92,7 @@ function showScreen(name) {
 // Quick Play screen
 function setQPDiff(diff) {
   qpDifficulty = diff;
-  ['easy','medium','hard'].forEach(d =>
+  ['easy','medium','hard','expert'].forEach(d =>
     document.getElementById(`qp-diff-${d}`).classList.toggle('active', d === diff));
 }
 function setQPSide(side) {

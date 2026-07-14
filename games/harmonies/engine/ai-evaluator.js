@@ -8,62 +8,168 @@
 // ── Pattern analysis helpers ──────────────────────────────────
 
 /**
- * Find anchor positions where the card's pattern is 1–3 cells away from complete.
- * Checks the default rotation only (fast; full-rotation checking done by findCubePlacements).
- * Returns [{satisfied, total, missing:[{key,token}]}] sorted best-first.
+ * Estimate token placements needed to satisfy one pattern cell from its current state.
+ * Returns 0 (already satisfied), a positive integer, or Infinity (impossible).
+ */
+function _stepsToSatisfy(stack, cell) {
+  const h   = stack.length;
+  const top = stack[h - 1];
+  const typeOk = cell.type === 'ANY' || top === cell.type;
+  const hOk    = h >= cell.minH && h <= cell.maxH;
+  if (typeOk && hOk) return 0; // already satisfied
+  if (h > cell.maxH) return Infinity; // stack already too tall
+  if (h === 0) {
+    // Empty hex — can build from scratch
+    switch (cell.type) {
+      case 'BLUE':
+      case 'YELLOW': return 1;                // place directly
+      case 'GRAY':   return cell.minH;        // 1–3 GRAY tokens
+      case 'BROWN':  return cell.minH;        // 1–2 BROWN tokens
+      case 'GREEN':  return cell.minH;        // minH=1:GREEN; minH=2:BROWN+GREEN; minH=3:BROWN+BROWN+GREEN
+      case 'RED':    return cell.minH;        // minH=1:RED; minH=2:something+RED
+      default:       return Infinity;
+    }
+  }
+  // Non-empty hex — wrong type
+  if (!typeOk) {
+    switch (cell.type) {
+      case 'GRAY':   return (top === 'GRAY'  && h < 3)        ? cell.minH - h : Infinity;
+      case 'BROWN':  return (top === 'BROWN' && h < 2)        ? cell.minH - h : Infinity;
+      case 'GREEN':  return (top === 'BROWN' && h <= 2)       ? cell.minH - h : Infinity;
+      case 'RED':    return (h === 1 && (top === 'GRAY' || top === 'BROWN' || top === 'RED')) ? 1 : Infinity;
+      default:       return Infinity; // BLUE/YELLOW only on empty; can't be changed
+    }
+  }
+  // typeOk but wrong height — can we stack more of the same type?
+  switch (cell.type) {
+    case 'GRAY':  return cell.minH - h; // GRAY stacks on GRAY
+    case 'BROWN': return cell.minH - h; // BROWN stacks on BROWN (up to h=2)
+    default:      return Infinity;      // GREEN/BLUE/YELLOW can't be further stacked
+  }
+}
+
+/**
+ * Find anchor positions where the card's pattern is 1–3 token placements from complete.
+ * Checks all 6 rotations. Only includes patterns where all missing cells are actually
+ * achievable given stacking rules — no phantom "near-complete" from occupied wrong-type hexes.
+ * Returns [{satisfied, total, missing:[{key,token}], totalSteps}] sorted fewest-steps-first.
  */
 function _findNearCompletePatterns(board, card) {
   const results = [];
+  const rotations = allRotations(card.pattern);
   for (const anchorKey of Object.keys(board.hexes)) {
     if (board.cubedHexes.has(anchorKey)) continue;
     const { q: aq, r: ar } = parseKey(anchorKey);
-    let satisfied = 0;
-    const missing = [];
-    let valid = true;
-    for (const cell of card.pattern) {
-      const key = hexKey(aq + cell.dq, ar + cell.dr);
-      if (!board.hexes[key]) { valid = false; break; }
-      const stack = board.hexes[key].stack;
-      const h     = stack.length;
-      const top   = stack[h - 1];
-      const typeOk = cell.type === 'ANY' || top === cell.type;
-      const hOk    = h >= cell.minH && h <= cell.maxH;
-      if (typeOk && hOk) {
-        satisfied++;
-      } else if (cell.type !== 'ANY') {
-        missing.push({ key, token: cell.type });
+    for (const pattern of rotations) {
+      let satisfied  = 0;
+      let totalSteps = 0;
+      let valid      = true;
+      const missing  = [];
+      for (const cell of pattern) {
+        const key = hexKey(aq + cell.dq, ar + cell.dr);
+        if (!board.hexes[key]) { valid = false; break; }
+        const steps = _stepsToSatisfy(board.hexes[key].stack, cell);
+        if (steps === Infinity) { valid = false; break; }
+        if (steps === 0) {
+          satisfied++;
+        } else {
+          totalSteps += steps;
+          if (cell.type !== 'ANY') missing.push({ key, token: cell.type });
+        }
       }
+      if (!valid || satisfied === 0 || totalSteps === 0) continue;
+      if (totalSteps > 3) continue; // too many tokens away to be "near-complete"
+      results.push({ satisfied, total: pattern.length, missing, totalSteps });
     }
-    if (!valid || satisfied === 0) continue;
-    if (missing.length === 0 || missing.length > 3) continue;
-    results.push({ satisfied, total: card.pattern.length, missing });
   }
-  results.sort((a, b) => b.satisfied - a.satisfied);
+  results.sort((a, b) => a.totalSteps - b.totalSteps || b.satisfied - a.satisfied);
   return results;
 }
 
 /**
  * Return a 0–1 fraction of how well the board already matches a card's pattern.
- * Used for card selection synergy scoring.
+ * Checks all 6 rotations so asymmetric patterns are not missed.
+ * Used for card selection synergy scoring and beam pruning (animalFastScore).
  */
 function _bestPatternMatchFraction(board, card) {
   let best = 0;
+  const rotations = allRotations(card.pattern); // all 6 rotations
   for (const anchorKey of Object.keys(board.hexes)) {
     if (board.cubedHexes.has(anchorKey)) continue;
     const { q: aq, r: ar } = parseKey(anchorKey);
-    let sat = 0;
-    let valid = true;
-    for (const cell of card.pattern) {
-      const key = hexKey(aq + cell.dq, ar + cell.dr);
-      if (!board.hexes[key]) { valid = false; break; }
-      const stack = board.hexes[key].stack;
-      const h     = stack.length;
-      const top   = stack[h - 1];
-      if ((cell.type === 'ANY' || top === cell.type) && h >= cell.minH && h <= cell.maxH) sat++;
+    for (const pattern of rotations) {
+      let creditSum = 0;
+      let valid = true;
+      for (const cell of pattern) {
+        const key = hexKey(aq + cell.dq, ar + cell.dr);
+        if (!board.hexes[key]) { valid = false; break; }
+        const stack = board.hexes[key].stack;
+        const h   = stack.length;
+        const top = stack[h - 1];
+        if (h > cell.maxH) { valid = false; break; } // stack too tall — impossible
+        if (h >= cell.minH && (cell.type === 'ANY' || top === cell.type)) {
+          creditSum += 1.0; // fully satisfied
+        } else if (h === 0) {
+          // Empty hex — credit by how many placements the cell actually needs,
+          // so a 3-step tall-tree cell isn't worth the same as a 1-step field.
+          const steps = _stepsToSatisfy(stack, cell);
+          if (steps === Infinity) { valid = false; break; }
+          creditSum += Math.max(0.1, 1 - steps * 0.45);
+        } else {
+          // Non-empty, not yet satisfied — steps-based credit; partially built
+          // stacks (committed, on track) are worth more than empty at equal steps.
+          const steps = _stepsToSatisfy(stack, cell);
+          if (steps === Infinity) { valid = false; break; }
+          creditSum += Math.max(0.15, 1 - steps * 0.35);
+        }
+      }
+      if (valid) best = Math.max(best, creditSum / pattern.length);
     }
-    if (valid) best = Math.max(best, sat / card.pattern.length);
   }
   return best;
+}
+
+/**
+ * Count how many neighbors of a hex are actually on the board.
+ * Corners have ≤2; edge hexes 3–4; interior hexes 5–6.
+ * Used to penalize RED (house) placement on low-connectivity hexes.
+ */
+function _boardDegree(board, key) {
+  const { q, r } = parseKey(key);
+  return getNeighborKeys(q, r).filter(nk => board.hexes[nk] !== undefined).length;
+}
+
+/**
+ * Cube conflict: fraction of candidate card's cube-fire hexes that overlap
+ * with cube-fire hexes for existing held cards. These hexes can only hold one
+ * cube — high overlap = bad portfolio fit.
+ */
+function cardConflictScore(board, candidateCard, heldCards) {
+  const placements = findCubePlacements(board, candidateCard);
+  if (!placements.length) return 0;
+  const candidateHexes = new Set(placements); // findCubePlacements returns string keys
+  let contested = 0;
+  for (const held of heldCards) {
+    for (const key of findCubePlacements(board, held)) {
+      if (candidateHexes.has(key)) contested++;
+    }
+  }
+  return Math.min(contested / candidateHexes.size, 1.0);
+}
+
+/**
+ * Terrain synergy: fraction of candidate card's required terrain types that
+ * overlap with terrain types needed by existing held cards. Shared terrain
+ * (e.g. both cards need GRAY) = same building effort advances multiple cards.
+ */
+function cardPortfolioSynergy(candidateCard, heldCards) {
+  if (!heldCards.length) return 0;
+  const candidateTypes = new Set(candidateCard.pattern.map(c => c.type));
+  let matches = 0;
+  for (const held of heldCards) {
+    if (held.pattern.some(c => candidateTypes.has(c.type))) matches++;
+  }
+  return matches / heldCards.length;
 }
 
 /**
@@ -126,7 +232,7 @@ function buildGoals(board, heldCards) {
         const best         = near[0];
         completionFraction = best.satisfied / best.total;
         missingTokens      = best.missing;
-        turnsEstimate      = best.missing.length * 1.2 + 0.5;
+        turnsEstimate      = best.totalSteps * 1.2 + 0.5; // steps-based estimate
       } else {
         completionFraction = 0;
         missingTokens      = [];
@@ -134,9 +240,10 @@ function buildGoals(board, heldCards) {
       }
     }
 
+    // Completion fraction dominates; points add a small bonus (up to ~3% per point)
     const priority = turnsEstimate > 0
-      ? (expectedPoints / turnsEstimate) * Math.max(completionFraction, 0.1)
-      : expectedPoints * 2;
+      ? (completionFraction / turnsEstimate) * (1 + expectedPoints * 0.03)
+      : completionFraction * (1 + expectedPoints * 0.03);
 
     goals.push({ card, completionFraction, missingTokens, turnsEstimate, expectedPoints, priority });
   }
@@ -160,6 +267,43 @@ function findSharedHabitat(goals) {
     if (count >= 2) shared.add(key);
   }
   return shared;
+}
+
+// ── Turns-remaining estimate ──────────────────────────────────
+
+/**
+ * Estimated placement turns the current player has left, set once per AI turn
+ * (vanilla-globals style — evaluators run deep in search without state access).
+ * Infinity = no estimate (e.g. evaluator called outside an AI turn).
+ */
+let _AI_TURNS_LEFT_HINT = Infinity;
+
+/**
+ * Per-turn flag: when true, animalFastScore/deepEvaluate delegate to the v3
+ * strategy brain (ai-strategy.js). Set at the start of each AI turn from the
+ * effective useV3 decision (global AI_STRATEGY_V3 or opts.strategyV3), so match
+ * play can mix a v3 seat and a legacy seat in the same game.
+ */
+let _AI_USE_V3 = false;
+
+/**
+ * Estimate how many more turns the current player gets before the game ends.
+ * End triggers: board ≤2 empty hexes, or pouch can't refill a slot.
+ * Placements average ~2.2 hexes/turn (some tokens stack or get skipped).
+ */
+function estimateTurnsRemaining(state) {
+  let empties;
+  if (typeof _AI_USE_V3 !== 'undefined' && _AI_USE_V3) {
+    // v3 tempo: the timer is whichever board (any player's) is closest to full,
+    // since the game ends when ANY board drops to ≤2 empty hexes.
+    empties = Infinity;
+    for (const b of state.boards) empties = Math.min(empties, emptyHexCount(b));
+  } else {
+    empties = emptyHexCount(state.boards[state.currentPlayer]);
+  }
+  const boardTurns = Math.max(0, (empties - 2) / 2.2);
+  const pouchTurns = pouchTotal(state.pouch) / (3 * state.numPlayers);
+  return Math.min(boardTurns, pouchTurns);
 }
 
 // ── Board quality helpers ─────────────────────────────────────
@@ -277,6 +421,135 @@ function quickEvaluate(board, boardSide) {
   return score;
 }
 
+// ── AnimalFastScore ───────────────────────────────────────────
+
+/**
+ * Animal-first beam-pruning heuristic. Replaces quickEvaluate in beamSearchPlacements.
+ * Scores by priority-weighted pattern-match progress toward held animal cards,
+ * with terrain adjacency as a small tiebreaker.
+ *
+ * Must be fast (called ~1000s of times per turn) — no BFS, no findCubePlacements.
+ * Uses _bestPatternMatchFraction (default rotation only, O(hexes × pattern)).
+ */
+function animalFastScore(board, boardSide) {
+  // v3 brain: fast pruning score comes from ai-strategy.js.
+  if (_AI_USE_V3 && typeof boardEvaluateFast === 'function') {
+    return boardEvaluateFast(board, boardSide);
+  }
+  // ── Animal progress (dominant) ──────────────────────────────
+  // Sort cards by how well the board already matches their pattern (most synergy first).
+  // Point value is a tiebreaker only — the card closest to firing gets the priority rank mult.
+  // Weights are heavily front-loaded: focus on ONE primary card; secondary cards barely influence
+  // placement so the beam search builds one pattern reliably rather than spreading thin.
+  const RANK_MULT = [10.0, 1.0, 0.3, 0.0];
+  const sortedCards = [...board.heldCards].sort((a, b) => {
+    const aPlaced = board.cubesPlaced[a.id] || 0;
+    const bPlaced = board.cubesPlaced[b.id] || 0;
+    const aFit = _bestPatternMatchFraction(board, a);
+    const bFit = _bestPatternMatchFraction(board, b);
+    // Progress score: weight prior cube progress + current board fit.
+    // A card that has already fired cubes maintains priority even if another
+    // card has a slightly better board fit — prevents mid-game momentum breaks.
+    const aProg = (aPlaced / Math.max(1, a.cubes)) + aFit * 0.5;
+    const bProg = (bPlaced / Math.max(1, b.cubes)) + bFit * 0.5;
+    if (Math.abs(bProg - aProg) > 0.02) return bProg - aProg;
+    // Tiebreak: next cube point value
+    const aNext = aPlaced < a.cubes ? (a.points[a.cubes - aPlaced - 1] || 0) : 0;
+    const bNext = bPlaced < b.cubes ? (b.points[b.cubes - bPlaced - 1] || 0) : 0;
+    return bNext - aNext;
+  });
+  let animalScore  = 0;
+  let topMatchFrac = 0; // best card's match fraction — used for terrain weight below
+  for (let i = 0; i < sortedCards.length; i++) {
+    const card    = sortedCards[i];
+    const placed  = board.cubesPlaced[card.id] || 0;
+    if (placed >= card.cubes) continue;
+    const matchFrac = _bestPatternMatchFraction(board, card);
+    if (i === 0) topMatchFrac = matchFrac;
+    const nextPts   = card.points[card.cubes - placed - 1] || 0;
+    const mult      = RANK_MULT[i] ?? 0.0;
+
+    if (matchFrac >= 0.99) {
+      // Pattern fully satisfied — a cube can fire next optional phase.
+      // Super-bonus: make this clearly the best possible placement outcome.
+      animalScore += (nextPts * 1.5 + 15) * mult;
+    } else {
+      animalScore += matchFrac * nextPts * mult;
+    }
+  }
+
+  // ── Opportunity cost: protect top card's near-complete pattern ──
+  // Penalize if a hex the top card needs has been claimed by the wrong token type.
+  if (sortedCards.length > 0) {
+    const topCard   = sortedCards[0];
+    const topPlaced = board.cubesPlaced[topCard.id] || 0;
+    if (topPlaced < topCard.cubes) {
+      const near = _findNearCompletePatterns(board, topCard);
+      if (near.length > 0) {
+        for (const { key, token } of near[0].missing) {
+          const cell = board.hexes[key];
+          if (!cell) continue;
+          const top = cell.stack[cell.stack.length - 1];
+          if (top && top !== token) animalScore -= 3.0;
+        }
+      }
+    }
+  }
+
+  // ── Terrain adjacency (tiebreaker only) ─────────────────────
+  let terrainScore = 0;
+  for (const [key, { stack }] of Object.entries(board.hexes)) {
+    if (stack.length === 0) { terrainScore += 0.05; continue; }
+    const top = stack[stack.length - 1];
+    const h   = stack.length;
+    const { q, r } = parseKey(key);
+    const neighbors = getNeighborKeys(q, r);
+    switch (top) {
+      case 'BLUE': {
+        const adj = neighbors.filter(nk => getTopToken(board, nk) === 'BLUE').length;
+        terrainScore += adj > 0 ? 1 + adj * 0.8 : 0.1;
+        break;
+      }
+      case 'YELLOW': {
+        const adj = neighbors.filter(nk => getTopToken(board, nk) === 'YELLOW').length;
+        terrainScore += adj > 0 ? 1.5 + adj * 0.5 : 0.1;
+        break;
+      }
+      case 'GRAY': {
+        const adj = neighbors.filter(nk => getTopToken(board, nk) === 'GRAY').length;
+        terrainScore += adj > 0 ? (MOUNTAIN_SCORE_TABLE[h] || 0) * 0.4 + adj * 0.3 : 0.1;
+        break;
+      }
+      case 'BROWN':
+        terrainScore += h === 1 ? 0.4 : h === 2 ? 0.8 : 0;
+        break;
+      case 'GREEN': {
+        const brownCount = stack.filter(t => t === 'BROWN').length;
+        terrainScore += (TREE_SCORE_TABLE[`${brownCount},1`] || 1) * 0.4;
+        break;
+      }
+      case 'RED': {
+        const degree = _boardDegree(board, key);
+        if (degree <= 2) { terrainScore -= 1.5; break; } // corner — almost never scores
+        if (h >= 2) {
+          const adjTypes = new Set(neighbors.map(nk => getTopToken(board, nk)).filter(Boolean));
+          terrainScore += adjTypes.size >= 3 ? 2 : adjTypes.size * 0.4;
+        } else {
+          terrainScore += 0.1;
+        }
+        break;
+      }
+    }
+  }
+
+  // Dynamic terrain weight: when the best card is far from firing (topMatchFrac low),
+  // terrain scoring rises to guide the AI toward high-value terrain plays:
+  // extend a river, pair a field, stack/pair a mountain.
+  // When a card is ready to fire (topMatchFrac ~1), terrain is just a tiebreaker.
+  const terrainWeight = 0.3 + (1 - Math.min(1, topMatchFrac)) * 1.5; // 0.3 → 1.8
+  return animalScore * 2.5 + terrainScore * terrainWeight;
+}
+
 // ── DeepEvaluate ─────────────────────────────────────────────
 
 /**
@@ -292,6 +565,11 @@ function quickEvaluate(board, boardSide) {
  * @returns {{ total: number, breakdown: object }}
  */
 function deepEvaluate(board, boardSide, goals, weights, tt) {
+  // v3 brain: full evaluation comes from ai-strategy.js (builds its own goals).
+  if (_AI_USE_V3 && typeof boardEvaluate === 'function') {
+    return boardEvaluate(board, boardSide, weights, tt);
+  }
+
   const w = weights || DEEP_EVAL_WEIGHTS;
 
   // Transposition cache check
@@ -315,11 +593,19 @@ function deepEvaluate(board, boardSide, goals, weights, tt) {
     animals:      scores.animals,
   };
 
-  // Goal progress (partial animal card completion)
+  // Goal progress (partial animal card completion) — priority-weighted,
+  // discounted when the pattern can't plausibly convert in the turns left.
   const activeGoals = goals || buildGoals(board, board.heldCards);
+  const GOAL_RANK_MULT = [3.0, 1.5, 0.6, 0.2]; // rank 0 = highest-priority card
+  const turnsLeft = _AI_TURNS_LEFT_HINT;
   let goalProgress = 0;
-  for (const goal of activeGoals) {
-    goalProgress += goal.completionFraction * goal.expectedPoints;
+  for (let i = 0; i < activeGoals.length; i++) {
+    const g = activeGoals[i];
+    let conv = 1;
+    if (isFinite(turnsLeft) && g.turnsEstimate > turnsLeft) {
+      conv = Math.max(0, 1 - (g.turnsEstimate - turnsLeft) * 0.5);
+    }
+    goalProgress += g.completionFraction * g.expectedPoints * conv * (GOAL_RANK_MULT[i] ?? 0.1);
   }
   const goalContrib = goalProgress * w.partialAnimalProgress;
   total += goalContrib;

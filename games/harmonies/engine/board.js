@@ -57,6 +57,9 @@ function canPlaceToken(board, key, tokenType) {
   const cell = board.hexes[key];
   if (!cell) return false;
 
+  // A hex holding an animal cube is locked — nothing may stack on top of it.
+  if (board.cubedHexes && board.cubedHexes.has(key)) return false;
+
   const stack = cell.stack;
   const h     = stack.length;
   const top   = stack[h - 1]; // undefined if empty
