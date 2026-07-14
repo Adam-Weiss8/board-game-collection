@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Yahtzee</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Menu ─────────────────────────────────────────────── -->
+<div id="screen-menu" class="screen active">
+  <div class="menu-wrap">
+    <h1 class="game-title">Yahtzee</h1>
+    <p class="game-tag">Roll, keep, and chase the perfect scorecard</p>
+    <div class="menu-buttons">
+      <button class="menu-btn" onclick="yzShow('setup')">
+        <span class="menu-btn-name">Local Game</span>
+        <span class="menu-btn-desc">1–4 players, pass &amp; play</span>
+      </button>
+      <button class="menu-btn" onclick="yzShow('qp')">
+        <span class="menu-btn-name">Quick Play</span>
+        <span class="menu-btn-desc">1 player vs Computer</span>
+      </button>
+      <button class="menu-btn menu-btn-soon" disabled>
+        <span class="menu-btn-name">Career</span>
+        <span class="menu-btn-desc">Coming soon</span>
+      </button>
+    </div>
+    <button class="link-back" onclick="location.href='../../index.html'">← Games</button>
+  </div>
+</div>
+
+<!-- ── Local setup ──────────────────────────────────────── -->
+<div id="screen-setup" class="screen">
+  <div class="setup-wrap">
+    <h2>Local Game</h2>
+    <label class="setup-label">Players</label>
+    <div class="toggle-row" id="yz-playercount">
+      <div class="toggle-opt" data-n="1" onclick="yzSetPlayerCount(1)">1</div>
+      <div class="toggle-opt active" data-n="2" onclick="yzSetPlayerCount(2)">2</div>
+      <div class="toggle-opt" data-n="3" onclick="yzSetPlayerCount(3)">3</div>
+      <div class="toggle-opt" data-n="4" onclick="yzSetPlayerCount(4)">4</div>
+    </div>
+    <div id="yz-name-inputs" class="name-inputs"></div>
+    <div class="setup-actions">
+      <button class="btn btn-gray" onclick="yzShow('menu')">← Back</button>
+      <button class="btn btn-gold" onclick="yzStartLocal()">Start Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Quick Play (vs AI) setup — wired next milestone ──── -->
+<div id="screen-qp" class="screen">
+  <div class="setup-wrap">
+    <h2>Quick Play</h2>
+    <label class="setup-label">Your Name</label>
+    <div class="name-inputs"><input id="yz-qp-name" type="text" value="You" maxlength="14" /></div>
+    <label class="setup-label">Difficulty</label>
+    <div class="toggle-row" id="yz-qp-diff">
+      <div class="toggle-opt" data-lvl="easy" onclick="yzSetQpLevel('easy')">Easy</div>
+      <div class="toggle-opt active" data-lvl="medium" onclick="yzSetQpLevel('medium')">Medium</div>
+      <div class="toggle-opt" data-lvl="hard" onclick="yzSetQpLevel('hard')">Hard</div>
+      <div class="toggle-opt" data-lvl="expert" onclick="yzSetQpLevel('expert')">Expert</div>
+    </div>
+    <div class="setup-actions">
+      <button class="btn btn-gray" onclick="yzShow('menu')">← Back</button>
+      <button class="btn btn-gold" onclick="yzStartQuickPlay()">Start Game</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Game ─────────────────────────────────────────────── -->
+<div id="screen-game" class="screen">
+  <div class="game-layout">
+    <div class="cards-col" id="yz-cards-left"></div>
+
+    <div class="table-area">
+      <div class="table-hud">
+        <span id="yz-round" class="hud-round">Round 1 / 13</span>
+        <span id="yz-turn" class="hud-turn">Player 1</span>
+      </div>
+
+      <div class="felt">
+        <div id="yz-dice" class="dice-tray"></div>
+      </div>
+
+      <div class="table-controls">
+        <button id="yz-roll-btn" class="btn btn-roll" onclick="yzOnRoll()">Roll</button>
+        <span id="yz-rolls-left" class="rolls-left">3 rolls left</span>
+        <button id="yz-confirm-btn" class="btn btn-gold btn-confirm hidden" onclick="yzOnConfirm()">Confirm</button>
+      </div>
+      <p id="yz-hint" class="table-hint">Tap Roll to start your turn.</p>
+    </div>
+
+    <div class="cards-col" id="yz-cards-right"></div>
+  </div>
+</div>
+
+<!-- ── Game over ────────────────────────────────────────── -->
+<div id="screen-gameover" class="screen">
+  <div class="gameover-wrap">
+    <h1 class="game-title">Final Scores</h1>
+    <div id="yz-standings" class="standings"></div>
+    <div class="setup-actions">
+      <button class="btn btn-gray" onclick="yzShow('menu')">← Menu</button>
+      <button class="btn btn-gold" onclick="yzPlayAgain()">Play Again</button>
+    </div>
+  </div>
+</div>
+
+<script src="engine/constants.js"></script>
+<script src="engine/dice.js"></script>
+<script src="engine/scoring.js"></script>
+<script src="engine/game.js"></script>
+<script src="main.js"></script>
+</body>
+</html>
